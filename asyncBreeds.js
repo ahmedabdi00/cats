@@ -1,16 +1,39 @@
-const fs = require('fs');
+const request = require("request");
 
-const breedDetailsFromFile = function(breed) {
-  console.log('breedDetailsFromFile: Calling readFile...');
-  fs.readFile(`./data/${breed}.txt`, 'utf8', (error, data) => {
-    console.log("In readFile's Callback: it has the data.");
-    // ISSUE: Returning from *inner* callback function, not breedDetailsFromFile.
-    if (!error) return data;
+const breedDetailsFromAPI = function (breed, callback) {
+  // Define the API endpoint URL with the breed name
+  const apiUrl = `https://api.thecatapi.com/v1/breeds/search?q=${breed}`;
+
+  // Make a GET request to the API endpoint
+  request(apiUrl, (error, response, body) => {
+    console.log("API Request: Calling TheCatAPI...");
+
+    if (error) {
+      // Handle request errors
+      callback(null, error);
+    } else {
+      if (response.statusCode === 200) {
+        // Parse the JSON response body
+        const data = JSON.parse(body);
+        if (data.length === 0) {
+          callback(null, "Breed not found.");
+        } else {
+          // Pass the breed data to the callback
+          callback(data[0], null);
+        }
+      } else {
+        // Handle non-200 HTTP status codes
+        callback(null, `HTTP Status Code: ${response.statusCode}`);
+      }
+    }
   });
-  // ISSUE: Attempting to return data out here will also not work.
-  //        Currently not returning anything from here, so breedDetailsFromFile function returns undefined.
 };
 
-// we try to get the return value
-const bombay = breedDetailsFromFile('Bombay');
-console.log('Return Value: ', bombay); // => will NOT print out details, instead we will see undefined!
+// Use the callback to work with the data or handle errors
+breedDetailsFromAPI("Bombay", (data, error) => {
+  if (error) {
+    console.error("Error:", error);
+  } else {
+    console.log("Return Value:", data);
+  }
+});
